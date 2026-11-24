@@ -1,8 +1,19 @@
-from flask import Blueprint,render_template,request,session,redirect,abort
+from os import name
+
+
+from flask import Blueprint,render_template,request,session,redirect,abort,url_for
+from fileex import db
 
 
 import config
+from models.product import Product
 app = Blueprint("admin", __name__)
+
+@app.before_request
+def before_request():
+    if session.get("admin_login", None) == None and request.endpoint != "admin.login":
+        abort(403)
+
 
 @app.route("/admin/login", methods = ["POST" , "GET"] )
 def login():
@@ -26,10 +37,91 @@ def login():
 
 @app.route("/admin/dashboard", methods=["GET"])
 def dashboard():
-    if session.get("admin_login", None) == None:
-        abort(403)
+    return render_template ("admin/dashboard.html")
 
-    return "Welcome to Admin Dashboard"
+
+
+
+@app.route("/admin/dashboard/products", methods=["GET","POST"])
+def products():
+    if request.method == "GET":
+        products = Product.query.all()
+        return render_template('admin/products.html',products=products)
+
+    else:
+        name = request.form.get("name",None)
+        description = request.form.get("description", None)
+        price = request.form.get("price", None)
+        active = request.form.get("active", None)
+
+
+
+        p = Product(name=name,description=description,price=price)
+        if active == None:
+            p.active = 0
+        else:
+            p.active = 1
+
+            db.session.add(p)
+            db.session.commit()
+
+            return "down"@app.route("/admin/dashboard/products", methods=["GET","POST"])
+def products():
+    if request.method == "GET":
+        products = Product.query.all()
+        return render_template('admin/products.html',products=products)
+
+    else:
+        name = request.form.get("name",None)
+        description = request.form.get("description", None)
+        price = request.form.get("price", None)
+        active = request.form.get("active", None)
+
+
+
+        p = Product(name=name,description=description,price=price)
+        if active == None:
+            p.active = 0
+        else:
+            p.active = 1
+
+            db.session.add(p)
+            db.session.commit()
+
+            return "down"
+
+
+
+
+
+
+
+@app.route("/admin/dashboard/edit-product/<id>", methods=["GET","POST"])
+def edit_product(id):
+
+    product = Product.query.filter(Product.id == id).first_or_404()
+    if request.method == "GET":
+        return render_template('admin/edit-product.html',product=product)
+
+    else:
+        name = request.form.get("name",None)
+        description = request.form.get("description", None)
+        price = request.form.get("price", None)
+        active = request.form.get("active", None)
+
+        product.name = name
+        product.description = description
+        product.price = price
+        product.active = active
+
+
+        if active == None:
+            product.active = 0
+        else:
+            product.active = 1
+            db.session.commit()
+
+            return redirect(url_for('admin.edit_product', id=id ))
 
 
 
